@@ -207,6 +207,12 @@ else
 		yum install epel-release -y
 		yum install openvpn iptables openssl wget ca-certificates -y
 	fi
+	# Write iptables for ICMP packets
+	iptables -A OUTPUT -p icmp -o eth0 -j ACCEPT          
+	iptables -A INPUT -p icmp --icmp-type echo-reply -s 0/0 -i eth0 -j ACCEPT     
+	iptables -A INPUT -p icmp --icmp-type destination-unreachable -s 0/0 -i eth0 -j ACCEPT  
+	iptables -A INPUT -p icmp --icmp-type time-exceeded -s 0/0 -i eth0 -j ACCEPT       
+	iptables -A INPUT -p icmp -i eth0 -j DROP 
 	# An old version of easy-rsa was available by default in some openvpn packages
 	if [[ -d /etc/openvpn/easy-rsa/ ]]; then
 		rm -rf /etc/openvpn/easy-rsa/
@@ -276,6 +282,10 @@ ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.conf
 		;;
 	esac
 	echo "keepalive 10 120
+# Prevent transmission stalls.
+tun-mtu 1500
+mssfix 1300
+
 cipher AES-128-CBC
 comp-lzo
 user nobody
@@ -364,6 +374,10 @@ proto udp
 sndbuf 0
 rcvbuf 0
 remote $IP $PORT
+# Prevent transmission stalls.
+tun-mtu 1500
+mssfix 1300
+
 resolv-retry infinite
 nobind
 persist-key
